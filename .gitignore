@@ -1,0 +1,92 @@
+# Environments and Secrets
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+!*.env.example
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+build/
+out/
+*.local
+.eslintcache
+.oxlintcache
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+*.egg
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Heavy Machine Learning Weights & Checkpoints (>100MB binaries)
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.onnx
+checkpoints/
+**/checkpoints/
+predictions/
+**/predictions/
+
+# Medical Imaging Datasets & Raw Archives
+*.nii
+*.nii.gz
+*.dcm
+*.tar
+*.tar.gz
+*.zip
+*.npz
+brats-download/
+test-data/
+**/test-data/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+pip_install.log
+
+# Knowledge Graph & Local Tooling
+graphify-out/
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+test_rpc.js

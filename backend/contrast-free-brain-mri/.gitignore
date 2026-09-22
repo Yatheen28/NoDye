@@ -1,0 +1,20 @@
+# Model Checkpoints & Large Weights
+checkpoints/
+predictions/
+test-data/
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.ckpt
+
+# Datasets and imaging files
+*.nii
+*.nii.gz
+*.tar
+*.tar.gz
+*.npz
+
+# Python cache
+__pycache__/
+*.py[cod]

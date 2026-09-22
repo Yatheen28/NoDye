@@ -1,0 +1,49 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+env/
+
+# ML Checkpoints and Large Weights
+checkpoints/
+predictions/
+test-data/
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.onnx
+
+# Medical Datasets & Scans
+*.nii
+*.nii.gz
+*.dcm
+*.tar
+*.tar.gz
+*.npz
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
