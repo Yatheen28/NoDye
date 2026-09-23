@@ -52,6 +52,9 @@ checkpoints/
 predictions/
 **/predictions/
 
+# Exception: the tumor classifier checkpoint is small enough to track
+!backend/tumor_predictor_package/models/best_model.pth
+
 # Medical Imaging Datasets & Raw Archives
 *.nii
 *.nii.gz
@@ -76,6 +79,9 @@ pip_install.log
 
 # Knowledge Graph & Local Tooling
 graphify-out/
+
+# Local pipeline test output (run_pipeline_local.py artefacts)
+local_out/
 
 # Editor and OS
 .vscode/*
