@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { backendWsUrl } from '../lib/supabase'
+import { backendWsUrl, type TumorSummary } from '../lib/supabase'
 
 /** Message shape emitted by the FastAPI `/ws/infer/{task_id}` endpoint. */
 export interface ProgressMessage {
@@ -9,6 +9,8 @@ export interface ProgressMessage {
   detail?: string
   scan_id?: string
   metrics?: { psnr: number; ssim: number; mae: number; source: string }
+  /** Compact Model 2 summary included in the 'complete' event. */
+  tumor?: TumorSummary
 }
 
 export type WsStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error'
@@ -21,6 +23,8 @@ export interface InferenceProgress {
   scanId: string | null
   error: string | null
   messages: ProgressMessage[]
+  /** Compact tumor summary from the 'complete' event (null until complete). */
+  tumorSummary: TumorSummary | null
 }
 
 const INITIAL: InferenceProgress = {
@@ -31,6 +35,7 @@ const INITIAL: InferenceProgress = {
   scanId: null,
   error: null,
   messages: [],
+  tumorSummary: null,
 }
 
 /**
@@ -74,6 +79,9 @@ export function useInferenceProgress(taskId: string | null): InferenceProgress &
         scanId: msg.type === 'complete' ? (msg.scan_id ?? null) : s.scanId,
         error: msg.type === 'error' ? (msg.detail ?? 'Inference failed') : s.error,
         messages: [...s.messages, msg],
+        // Capture the compact tumor summary from the 'complete' event so the
+        // UploadPage can show a quick result before the user navigates away.
+        tumorSummary: msg.type === 'complete' && msg.tumor ? msg.tumor : s.tumorSummary,
       }))
       if (msg.type === 'complete' || msg.type === 'error') ws.close()
     }

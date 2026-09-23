@@ -43,6 +43,92 @@ export interface Patient {
 
 export type MetricsSource = 'measured' | 'benchmark'
 
+// --------------------------------------------------------------------------
+// Model 2 (tumor classifier) types — mirrors tumor_service.py output schema
+// --------------------------------------------------------------------------
+
+export interface TumorCategory {
+  class_key: string
+  name: string
+  mean_probability_pct: number
+  max_probability_pct: number
+  slices_predicted: number
+  risk_tier: string
+  is_tumor_type: boolean
+  insight: string
+}
+
+export interface TumorSliceImages {
+  mri?: string      // object path in heatmaps bucket
+  heatmap?: string
+  overlay?: string
+}
+
+export interface TumorSlice {
+  z: number
+  predicted_class: string
+  predicted_name: string
+  confidence_pct: number
+  tumor_chance_pct: number
+  probabilities: Record<string, number>
+  probabilities_pct: Record<string, number>
+  images: TumorSliceImages
+}
+
+export interface TumorPrimaryFinding {
+  class_key: string
+  name: string
+  mean_probability_pct: number
+  risk_tier: string
+}
+
+export interface TumorAnalysis {
+  status: 'ok' | 'failed' | 'disabled' | string
+  error?: string | null
+  error_kind?: string
+  tumor_detected?: boolean
+  overall_tumor_chance_pct?: number
+  overall_healthy_chance_pct?: number
+  overall_risk_tier?: string
+  primary_finding?: TumorPrimaryFinding
+  aggregation?: string
+  categories?: TumorCategory[]
+  slices_total?: number
+  slices_generated_range?: [number, number]
+  slices_analyzed?: number[]
+  tumor_positive_slices?: number[]
+  tumor_positive_count?: number
+  representative_slice?: number
+  not_available?: Record<string, string>
+  summary_text?: string
+  disclaimer?: string
+  model?: {
+    name: string
+    checkpoint: string
+    classes: string[]
+    input: string
+    device: string
+    architecture?: string
+    epoch?: number
+    val_f1?: number | null
+    val_acc?: number | null
+  }
+  source?: string
+  slices?: TumorSlice[]
+  images_bucket?: string
+}
+
+/** Compact tumor summary sent in the WebSocket 'complete' event. */
+export interface TumorSummary {
+  status: string
+  error?: string | null
+  tumor_detected?: boolean
+  primary_finding?: string
+  primary_probability_pct?: number
+  overall_tumor_chance_pct?: number
+  overall_risk_tier?: string
+}
+
 export interface Scan {
   scan_id: string
   patient_id: string
@@ -56,6 +142,8 @@ export interface Scan {
   metrics_source: MetricsSource | null
   pdf_url: string | null
   created_at: string
+  // Model 2 result stored as JSONB in the scans table (migration 002)
+  tumor_analysis?: TumorAnalysis | null
 }
 
 /**

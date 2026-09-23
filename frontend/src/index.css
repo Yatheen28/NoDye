@@ -1139,6 +1139,437 @@ code,
 }
 
 /* --------------------------------------------------------------------------
+   Results page: section divider label
+   -------------------------------------------------------------------------- */
+
+.results-section-label {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.results-section-label .eyebrow {
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   AI Tumor Analysis section
+   -------------------------------------------------------------------------- */
+
+.tumor-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.tumor-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tumor-section__title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.tumor-ai-tag {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A4DB3;
+  background: #F3EAFF;
+  border: 1px solid #C9A8F0;
+  border-radius: var(--radius);
+  padding: 0.2rem 0.55rem;
+}
+
+/* ── 3-panel image row ── */
+
+.tumor-image-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .tumor-image-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tumor-image-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tumor-image-frame {
+  position: relative;
+  background: #0B0F12;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  aspect-ratio: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tumor-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.tumor-image-frame__label {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
+  z-index: 1;
+}
+
+.tumor-image-frame__skeleton {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+}
+
+.tumor-image-caption {
+  font-size: var(--fs-xs);
+  color: var(--slate);
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Finding card ── */
+
+.tumor-finding-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1.5px solid;
+  margin-bottom: 0;
+}
+
+.tumor-finding-card--detected {
+  background: #FBE7E1;
+  border-color: var(--coral);
+}
+
+.tumor-finding-card--clear {
+  background: var(--sage-bg);
+  border-color: var(--sage);
+}
+
+.tumor-finding-card__left {
+  flex: 1;
+  min-width: 0;
+}
+
+.tumor-finding-card__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 0 0 0.35rem;
+}
+
+.tumor-finding-card__primary {
+  font-size: var(--fs-md);
+  color: var(--ink);
+  margin: 0 0 0.35rem;
+}
+
+.tumor-finding-card__prob {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.tumor-finding-card__meta {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  margin: 0 0 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.tumor-finding-card__sub {
+  font-size: var(--fs-xs);
+  color: var(--slate);
+  margin: 0.25rem 0 0;
+}
+
+.tumor-finding-card__badge {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ── Detected / clear badge ── */
+
+.tumor-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.9rem;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.tumor-badge--detected {
+  background: var(--coral);
+}
+
+.tumor-badge--clear {
+  background: var(--sage);
+}
+
+/* ── Risk tier pills ── */
+
+.tumor-risk-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 0.5rem;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.risk--high {
+  color: #8E2F1D;
+  border-color: var(--coral);
+  background: var(--coral-bg);
+}
+
+.risk--moderate {
+  color: #6F5410;
+  border-color: var(--amber);
+  background: var(--amber-bg);
+}
+
+.risk--low {
+  color: #2F5A2E;
+  border-color: var(--sage);
+  background: var(--sage-bg);
+}
+
+.risk--neutral {
+  color: var(--slate);
+  border-color: var(--line-strong);
+  background: var(--paper-2);
+}
+
+/* ── Per-type category table ── */
+
+.tumor-subsection-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 0 0 0.6rem;
+}
+
+.tumor-category-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.tumor-category-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.tumor-category-table th {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.tumor-category-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.tumor-category-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.tumor-category-table__healthy td {
+  color: var(--slate);
+}
+
+.tumor-category-table__insight {
+  font-size: var(--fs-xs);
+  color: var(--slate);
+  line-height: 1.45;
+  max-width: 320px;
+}
+
+/* ── Slice navigator ── */
+
+.tumor-slice-nav {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.tumor-slice-nav__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tumor-slice-nav__info {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  text-align: center;
+  flex: 1;
+}
+
+.tumor-slice-nav__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tumor-slice-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  background: var(--paper-3);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.tumor-slice-dot:hover {
+  transform: scale(1.3);
+  border-color: var(--teal-500);
+}
+
+.tumor-slice-dot--active {
+  background: var(--teal-600);
+  border-color: var(--teal-600);
+  transform: scale(1.25);
+}
+
+.tumor-slice-dot--positive {
+  border-color: var(--coral);
+}
+
+.tumor-slice-dot--positive.tumor-slice-dot--active {
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+/* ── Not-available block ── */
+
+.tumor-na-block {
+  margin-top: 1rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: var(--fs-xs);
+  color: var(--slate);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+}
+
+.tumor-na-block__label {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.tumor-na-block__item {
+  color: var(--slate);
+}
+
+/* ── AI summary block ── */
+
+.tumor-summary-block {
+  margin-top: 1.25rem;
+  padding: 0.9rem 1rem;
+  background: var(--teal-050);
+  border: 1px solid var(--teal-100);
+  border-radius: var(--radius);
+}
+
+.tumor-summary-block__text {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Disclaimer + model meta ── */
+
+.tumor-disclaimer {
+  margin-top: 0.75rem;
+  font-size: var(--fs-xs);
+  color: var(--slate);
+  line-height: 1.5;
+}
+
+.tumor-model-meta {
+  margin-top: 0.4rem;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  color: var(--slate-2);
+}
+
+/* --------------------------------------------------------------------------
    Brain visualizer
    -------------------------------------------------------------------------- */
 

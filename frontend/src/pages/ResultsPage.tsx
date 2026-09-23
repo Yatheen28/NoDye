@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BACKEND_URL, fetchScan, signedUrl, type Scan } from '../lib/supabase'
 import { getAccessToken } from '../hooks/useAuth'
+import { TumorAnalysisPanel, type SliceUrls } from '../components/TumorAnalysisPanel'
 
 interface Urls {
   preview: string | null
@@ -17,6 +18,10 @@ export function ResultsPage() {
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
 
+  // Model 2 slice image URLs: Map<z, {mri, heatmap, overlay}>
+  const [sliceImageUrls, setSliceImageUrls] = useState<Map<number, SliceUrls>>(new Map())
+  const [sliceImagesLoading, setSliceImagesLoading] = useState(false)
+
   useEffect(() => {
     if (!scanId) return
     let cancelled = false
@@ -25,12 +30,37 @@ export function ResultsPage() {
         if (cancelled) return
         setScan(s)
         if (!s) return
+
+        // Sign the main imaging URLs (Model 1 outputs).
         const [preview, heatmap, result] = await Promise.all([
           signedUrl('previews', s.preview_image_url),
           signedUrl('heatmaps', s.attention_map_url),
           signedUrl('result-scans', s.result_scan_url),
         ])
         if (!cancelled) setUrls({ preview, heatmap, result })
+
+        // Sign Model 2 per-slice image URLs if tumor_analysis is present.
+        // Each slice stores object paths in the heatmaps bucket under
+        // slices[i].images.{mri, heatmap, overlay}.
+        const ta = s.tumor_analysis
+        if (ta?.status === 'ok' && ta.slices?.length) {
+          setSliceImagesLoading(true)
+          const bucket = (ta.images_bucket ?? 'heatmaps') as 'heatmaps'
+          const entries = await Promise.all(
+            ta.slices.map(async (sl) => {
+              const [mri, hm, ov] = await Promise.all([
+                signedUrl(bucket, sl.images?.mri ?? null),
+                signedUrl(bucket, sl.images?.heatmap ?? null),
+                signedUrl(bucket, sl.images?.overlay ?? null),
+              ])
+              return [sl.z, { mri, heatmap: hm, overlay: ov }] as [number, SliceUrls]
+            }),
+          )
+          if (!cancelled) {
+            setSliceImageUrls(new Map(entries))
+            setSliceImagesLoading(false)
+          }
+        }
       })
       .catch((e: Error) => !cancelled && setError(e.message))
     return () => {
@@ -82,6 +112,7 @@ export function ResultsPage() {
   }
 
   const loading = scan === undefined
+  const tumorAnalysis = scan?.tumor_analysis ?? null
 
   return (
     <div className="fade-in">
@@ -120,6 +151,12 @@ export function ResultsPage() {
         </div>
       )}
 
+      {/* ── Existing Report: Model 1 imaging ─────────────────────────────── */}
+      <div className="results-section-label">
+        <span className="eyebrow">Existing Report</span>
+        <hr className="divider" style={{ flex: 1 }} />
+      </div>
+
       {/* Two images side by side */}
       <div className="results-images">
         <ImagePanel
@@ -132,14 +169,14 @@ export function ResultsPage() {
         />
         <ImagePanel
           title="Attention heatmap"
-          subtitle="Sigmoid output of gate att1 (highest resolution)"
+          subtitle="Absolute difference (Model 1 input vs output)"
           src={urls.heatmap}
           loading={loading}
-          alt="Attention gate heatmap overlaid on the slice"
+          alt="Absolute difference heatmap"
         />
       </div>
 
-      {/* Downloads panel – full width below */}
+      {/* Downloads panel */}
       <div className="panel" style={{ marginTop: '1.5rem' }}>
         <div className="panel__head">
           <span className="panel__title">Downloads</span>
@@ -176,6 +213,27 @@ export function ResultsPage() {
           </p>
         </div>
       </div>
+
+      {/* ── AI Tumor Analysis (Model 2) ───────────────────────────────────── */}
+      <div className="results-section-label" style={{ marginTop: '2.5rem' }}>
+        <span className="eyebrow">AI Tumor Analysis</span>
+        <hr className="divider" style={{ flex: 1 }} />
+      </div>
+
+      {loading ? (
+        <div className="panel">
+          <div className="panel__body">
+            <div className="skeleton" style={{ height: '2rem', width: '60%', marginBottom: '1rem' }} />
+            <div className="skeleton" style={{ height: '200px' }} />
+          </div>
+        </div>
+      ) : (
+        <TumorAnalysisPanel
+          analysis={tumorAnalysis}
+          sliceImageUrls={sliceImageUrls}
+          imagesLoading={sliceImagesLoading}
+        />
+      )}
     </div>
   )
 }
@@ -192,6 +250,7 @@ function ImagePanel({
   src: string | null
   loading: boolean
   alt: string
+  zoomable?: boolean
 }) {
   const [imgError, setImgError] = useState(false)
 
