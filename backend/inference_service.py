@@ -28,6 +28,7 @@ from config import (
     BUCKET_RESULT,
     CHECKPOINT_PATH,
     ML_DIR,
+    TUMOR_ANALYSIS_ENABLED,
 )
 
 # Make the ML project importable exactly as it expects (`from train import load_generator`).
@@ -37,6 +38,10 @@ if str(ML_DIR) not in sys.path:
 from evaluate_metrics import evaluate_patient_scan  # noqa: E402
 from infer import _load_volume, _normalise, infer_volume  # noqa: E402
 from train import load_generator  # noqa: E402
+
+# INTEGRATION: Model 2 (tumour classifier) lives in tumor_service.py and consumes
+# the synthetic T1CE that infer_volume() writes.  See run_inference_job below.
+import tumor_service  # noqa: E402
 
 ProgressFn = Callable[[int, str, str | None], None]
 
@@ -159,7 +164,7 @@ def run_inference_job(
             generator=load_model_once(),
         )
 
-        progress(88, "Extracting attention heatmap", "Hooking att1.psi")
+        progress(86, "Extracting attention heatmap", "Hooking att1.psi")
         t1_norm = _normalise(_load_volume(t1_path))
         z = t1_norm.shape[2] // 2
         preview_png = os.path.join(tmp, "preview.png")
@@ -168,6 +173,26 @@ def run_inference_job(
         save_preview_png(out_path, z, preview_png)
         save_preview_png(t1_path, z, raw_preview_png)
         extract_attention_heatmap(t1_norm, z, heatmap_png)
+
+        # ------------------------------------------------------------------ #
+        # INTEGRATION POINT: Model 1 output -> Model 2.
+        # `out_path` (synthetic_t1ce.nii.gz, float32 in [0,1]) is the *only*
+        # thing handed to the tumour classifier.  Model 2 failures are recorded
+        # in the scan row but never abort the existing contrast pipeline.
+        # ------------------------------------------------------------------ #
+        tumor_dir = os.path.join(tmp, "tumor")
+        tumor_files: list[tuple[str, str]] = []
+        if TUMOR_ANALYSIS_ENABLED:
+            try:
+                tumor_analysis, tumor_files = tumor_service.run_tumor_analysis(out_path, tumor_dir, progress=progress)
+            except tumor_service.TumorAnalysisError as exc:
+                print(f"[NoDye] Tumor analysis skipped: {exc}")
+                tumor_analysis = tumor_service.failed_analysis(exc)
+            except Exception as exc:  # unexpected: still keep Model 1 results
+                print(f"[NoDye] Tumor analysis crashed: {exc}")
+                tumor_analysis = tumor_service.failed_analysis(exc)
+        else:
+            tumor_analysis = {"status": "disabled", "error": None, "slices": []}
 
         progress(95, "Computing metrics", None)
         gt_path = _find_ground_truth(t1_path, safe_name, tmp)
@@ -192,6 +217,17 @@ def run_inference_job(
         # Also upload the raw preview (we don't have a column for it, but frontend can infer its path)
         _upload(sb, BUCKET_PREVIEW, f"{prefix}/raw_preview.png", raw_preview_png, "image/png")
 
+        # Model 2 images (per-slice MRI / Grad-CAM heat map / overlay) go in the
+        # existing `heatmaps` bucket under <prefix>/tumor/... so no new bucket or
+        # storage policy is required.  Paths inside the JSON are rewritten to the
+        # full object path so the frontend can sign them directly.
+        if tumor_files:
+            for rel_name, local in tumor_files:
+                _upload(sb, BUCKET_HEATMAP, f"{prefix}/{rel_name}", local, "image/png")
+            for sl in tumor_analysis.get("slices", []):
+                sl["images"] = {k: f"{prefix}/{v}" for k, v in sl["images"].items()}
+            tumor_analysis["images_bucket"] = BUCKET_HEATMAP
+
         row = {
             "scan_id": scan_id,
             "patient_id": patient_id,
@@ -203,7 +239,33 @@ def run_inference_job(
         }
         sb.table("scans").insert(row).execute()
 
-        return {"scan_id": scan_id, "metrics": {**metrics, "source": metrics_source}}
+        # Stored separately so a database that has not yet run
+        # supabase/migrations/002_tumor_analysis.sql still records the scan.
+        try:
+            sb.table("scans").update({"tumor_analysis": tumor_analysis}).eq("scan_id", scan_id).execute()
+        except Exception as exc:
+            print(f"[NoDye] Could not store tumor_analysis (run migration 002?): {exc}")
+
+        return {
+            "scan_id": scan_id,
+            "metrics": {**metrics, "source": metrics_source},
+            "tumor": _tumor_summary(tumor_analysis),
+        }
+
+
+def _tumor_summary(analysis: dict) -> dict:
+    """Compact Model 2 summary for the WebSocket `complete` event."""
+    if analysis.get("status") != "ok":
+        return {"status": analysis.get("status", "failed"), "error": analysis.get("error")}
+    pf = analysis.get("primary_finding", {})
+    return {
+        "status": "ok",
+        "tumor_detected": analysis.get("tumor_detected"),
+        "primary_finding": pf.get("name"),
+        "primary_probability_pct": pf.get("mean_probability_pct"),
+        "overall_tumor_chance_pct": analysis.get("overall_tumor_chance_pct"),
+        "overall_risk_tier": analysis.get("overall_risk_tier"),
+    }
 
 
 def _upload(sb, bucket: str, object_path: str, local_path: str, content_type: str) -> str:

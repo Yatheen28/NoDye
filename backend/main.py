@@ -17,14 +17,22 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import Response  # noqa: E402
 
 import inference_service  # noqa: E402
+import tumor_service  # noqa: E402
 from auth import assert_patient_owned, get_hospital_name, get_owned_scan, get_patient, service_client, verify_user  # noqa: E402
-from config import BUCKET_HEATMAP, BUCKET_PREVIEW, BUCKET_REPORTS, CHECKPOINT_PATH  # noqa: E402
+from config import BUCKET_HEATMAP, BUCKET_PREVIEW, BUCKET_REPORTS, CHECKPOINT_PATH, TUMOR_ANALYSIS_ENABLED  # noqa: E402
 from pdf_service import build_report_pdf  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     inference_service.load_model_once()
+    # Model 2 is optional at startup: a missing checkpoint is reported on /health
+    # and in each scan's tumor_analysis.status instead of preventing boot.
+    if TUMOR_ANALYSIS_ENABLED:
+        try:
+            tumor_service.load_tumor_model_once()
+        except tumor_service.TumorAnalysisError as exc:
+            print(f"[NoDye] WARNING: tumour classifier unavailable: {exc}")
     yield
 
 
@@ -42,7 +50,12 @@ _TASKS: dict[str, dict] = {}
 
 @app.get("/health")
 def health():
-    return {"ok": True, "device": inference_service.device_name(), "checkpoint": os.path.basename(CHECKPOINT_PATH)}
+    return {
+        "ok": True,
+        "device": inference_service.device_name(),
+        "checkpoint": os.path.basename(CHECKPOINT_PATH),
+        "tumor_model": {"enabled": TUMOR_ANALYSIS_ENABLED, **tumor_service.tumor_model_status()},
+    }
 
 
 def _publish(task_id: str, event: dict, loop: asyncio.AbstractEventLoop) -> None:
@@ -93,7 +106,14 @@ async def infer(
             )
             _publish(
                 task_id,
-                {"type": "complete", "progress": 100, "stage": "Complete", "scan_id": result["scan_id"], "metrics": result["metrics"]},
+                {
+                    "type": "complete",
+                    "progress": 100,
+                    "stage": "Complete",
+                    "scan_id": result["scan_id"],
+                    "metrics": result["metrics"],
+                    "tumor": result.get("tumor"),
+                },
                 loop,
             )
         except Exception as exc:  # surfaced to the client over the socket
@@ -145,13 +165,22 @@ def scan_pdf(scan_id: str, hospital_id: str = Depends(verify_user)):
     preview = _download(sb, BUCKET_PREVIEW, scan.get("preview_image_url"))
     heatmap = _download(sb, BUCKET_HEATMAP, scan.get("attention_map_url"))
 
-    pdf_bytes = build_report_pdf(
-        hospital_name=hospital_name,
-        patient=patient,
-        scan=scan,
-        preview_png=preview,
-        heatmap_png=heatmap,
-    )
+    # Model 2 images for the representative slice (MRI / Grad-CAM / overlay).
+    tumor_analysis = scan.get("tumor_analysis") or None
+    tumor_images = _tumor_report_images(sb, tumor_analysis)
+
+    try:
+        pdf_bytes = build_report_pdf(
+            hospital_name=hospital_name,
+            patient=patient,
+            scan=scan,
+            preview_png=preview,
+            heatmap_png=heatmap,
+            tumor_analysis=tumor_analysis,
+            tumor_images=tumor_images,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {exc}") from exc
 
     object_path = f"{hospital_id}/{scan['patient_id']}/{scan_id}/report.pdf"
     try:
@@ -175,3 +204,20 @@ def _download(sb, bucket: str, path: str | None) -> bytes | None:
     except Exception as exc:
         print(f"[NoDye] download {bucket}/{path} failed: {exc}")
         return None
+
+
+def _tumor_report_images(sb, analysis: dict | None) -> dict[str, bytes]:
+    """Fetch the representative slice's MRI / heat map / overlay PNGs for the PDF."""
+    if not analysis or analysis.get("status") != "ok":
+        return {}
+    rep = analysis.get("representative_slice")
+    slice_row = next((s for s in analysis.get("slices", []) if s.get("z") == rep), None)
+    if not slice_row:
+        return {}
+    bucket = analysis.get("images_bucket", BUCKET_HEATMAP)
+    out: dict[str, bytes] = {}
+    for key, path in (slice_row.get("images") or {}).items():
+        data = _download(sb, bucket, path)
+        if data:
+            out[key] = data
+    return out
