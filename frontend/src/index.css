@@ -579,14 +579,15 @@ code,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  min-height: 150px;
+  gap: 0.35rem;
+  min-height: 168px;
   padding: 1.5rem;
   text-align: center;
   background: #fff;
-  border: 1px dashed var(--line-strong);
+  border: 1.5px dashed var(--line-strong);
   border-radius: var(--radius);
-  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
   cursor: pointer;
 }
 
@@ -596,22 +597,115 @@ code,
   background: var(--teal-050);
 }
 
+.dropzone.is-over {
+  box-shadow: inset 0 0 0 1px var(--teal-600);
+}
+
+.dropzone.is-over .dropzone__icon {
+  transform: translateY(-3px);
+  color: var(--teal-700);
+}
+
 .dropzone.has-file {
   border-style: solid;
   border-color: var(--teal-600);
+  background: var(--teal-050);
 }
 
+.dropzone.is-disabled {
+  cursor: not-allowed;
+  background: var(--paper-2);
+  border-color: var(--line);
+  color: var(--slate);
+}
+
+.dropzone.is-disabled:hover {
+  border-color: var(--line);
+  background: var(--paper-2);
+}
+
+/* The real input covers the whole zone: native click-to-browse, keyboard
+   focus and drag-drop all keep working while staying invisible. */
 .dropzone input[type="file"] {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
   cursor: pointer;
+  z-index: 1;
+}
+
+.dropzone input[type="file"]:disabled {
+  cursor: not-allowed;
+}
+
+.dropzone:has(input:focus-visible) {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+.dropzone__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.35rem;
+  color: var(--teal-600);
+  background: var(--teal-050);
+  border: 1px solid var(--teal-100);
+  border-radius: 50%;
+  transition: transform var(--t-base) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.dropzone.has-file .dropzone__icon {
+  background: var(--teal-600);
+  border-color: var(--teal-600);
+  color: #fff;
+}
+
+.dropzone__title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dropzone__meta {
+  font-size: var(--fs-sm);
+  color: var(--slate);
+}
+
+.dropzone__link {
+  color: var(--teal-700);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .dropzone__name {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--teal-800);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.link-btn {
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
   color: var(--teal-700);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-btn:hover {
+  color: var(--teal-800);
 }
 
 /* --------------------------------------------------------------------------
@@ -1576,53 +1670,267 @@ code,
 .brain-viz {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  background: #0B1416;
-  border: 1px solid var(--teal-900);
-  border-radius: var(--radius);
+  /* Fixed height (not aspect-ratio): the R3F wrapper is pinned to this box
+     with position:absolute, so it needs a definite height to size against. */
+  height: 420px;
+  min-height: 320px;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 42%, rgba(30, 122, 122, 0.16), transparent 70%),
+    #0B1416;
+  border-right: 1px solid var(--line);
   overflow: hidden;
+  transition: box-shadow var(--t-slow) var(--ease);
 }
 
 .brain-viz canvas {
   display: block;
 }
 
+/* Faint grid so the panel reads as an instrument even before a run starts. */
+.brain-viz::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(127, 179, 176, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 179, 176, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 40%, transparent 100%);
+}
+
+.brain-viz.is-idle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 45% 40% at 50% 45%, rgba(159, 224, 218, 0.10), transparent 70%);
+  animation: brain-idle-pulse 3.2s ease-in-out infinite;
+}
+
+.brain-viz.is-complete {
+  box-shadow: inset 0 0 0 1px rgba(159, 224, 218, 0.35), inset 0 0 60px rgba(30, 140, 134, 0.25);
+}
+
+@keyframes brain-idle-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .brain-viz__hud {
   position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
+  left: 1.25rem;
+  right: 1.25rem;
+  bottom: 1.1rem;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  gap: 1rem;
   pointer-events: none;
   color: var(--teal-100);
 }
 
 .brain-viz__pct {
   font-family: var(--font-mono);
-  font-size: var(--fs-2xl);
+  font-size: clamp(2.4rem, 4vw, 3.1rem);
   font-weight: 500;
   line-height: 1;
+  letter-spacing: -0.02em;
   color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+.brain-viz.is-complete .brain-viz__pct {
+  color: #C8F2EE;
 }
 
 .brain-viz__stage {
   font-size: var(--fs-xs);
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--teal-300);
-  margin-top: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.brain-viz__detail {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: rgba(217, 231, 229, 0.7);
+  margin-top: 0.25rem;
 }
 
 .brain-viz__hint {
   font-size: var(--fs-xs);
   color: var(--slate-2);
   text-align: right;
+  line-height: 1.5;
 }
 
 .brain-viz__hint span {
   display: block;
+}
+
+/* Brain + stage checklist side by side inside the Processing panel. */
+.process-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  align-items: stretch;
+}
+
+@media (max-width: 1080px) {
+  .process-grid {
+    grid-template-columns: 1fr;
+  }
+  .brain-viz {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.process-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.25rem 1.25rem;
+  background: var(--surface);
+}
+
+.process-side__note {
+  margin-top: auto;
+}
+
+.process-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.process-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.65rem;
+  padding: 0.5rem 0;
+  font-size: var(--fs-sm);
+  color: var(--slate-2);
+  transition: color var(--t-base) var(--ease);
+}
+
+/* Connector line between markers. */
+.process-stage:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 1.45rem;
+  bottom: -0.35rem;
+  width: 2px;
+  background: var(--paper-3);
+  transition: background var(--t-base) var(--ease);
+}
+
+.process-stage.is-done:not(:last-child)::before {
+  background: var(--teal-300);
+}
+
+.process-stage__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--paper-3);
+  background: var(--surface);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+
+.process-stage.is-done {
+  color: var(--ink-2);
+}
+.process-stage.is-done .process-stage__marker {
+  background: var(--teal-600);
+  border-color: var(--teal-600);
+}
+
+.process-stage.is-active {
+  color: var(--ink);
+  font-weight: 600;
+}
+.process-stage.is-active .process-stage__marker {
+  border-color: var(--teal-500);
+  background: var(--teal-050);
+}
+.process-stage.is-active .process-stage__marker::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal-600);
+  animation: stage-blink 1.2s ease-in-out infinite;
+}
+
+.process-stage.is-failed {
+  color: #8E2F1D;
+}
+.process-stage.is-failed .process-stage__marker {
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+@keyframes stage-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+.process-stage__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.process-stage__label {
+  line-height: 1.35;
+}
+
+.process-stage__detail {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--slate);
+  overflow-wrap: anywhere;
+}
+
+.process-stage__pct {
+  font-size: var(--fs-xs);
+  color: var(--slate-2);
+  padding-top: 0.15rem;
+}
+
+.process-stage.is-done .process-stage__pct,
+.process-stage.is-active .process-stage__pct {
+  color: var(--teal-700);
 }
 
 /* --------------------------------------------------------------------------

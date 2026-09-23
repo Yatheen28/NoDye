@@ -88,6 +88,8 @@ uniform float uProgress;
 uniform float uMinY;
 uniform float uMaxY;
 uniform float uTime;
+uniform float uPulse;   // 0..1 idle "breathing" strength
+uniform float uGlow;    // 0..1 completion flare
 uniform vec3 uBase;
 uniform vec3 uFillCool;
 uniform vec3 uFillWarm;
@@ -105,24 +107,33 @@ void main() {
   float sulcus = smoothstep(0.12, 0.85, vRidge);
 
   vec3 N = normalize(vNormalW);
+  // Key light from upper-front-right plus a cool fill from the opposite side so
+  // the unfilled brain is always legible against the dark panel.
   vec3 L = normalize(vec3(0.45, 0.9, 0.55));
+  vec3 L2 = normalize(vec3(-0.6, 0.2, -0.4));
   float diff = max(dot(N, L), 0.0);
+  float fill2 = max(dot(N, L2), 0.0) * 0.22;
   float wrap = max(dot(N, -L) * 0.15, 0.0);
 
-  vec3 baseCol = mix(uBase * 0.42, uBase, sulcus);
+  vec3 baseCol = mix(uBase * 0.55, uBase, sulcus);
   vec3 fillTone = mix(uFillCool, uFillWarm, smoothstep(0.0, 1.0, h));
   vec3 fillCol = mix(fillTone * 0.55, fillTone, sulcus);
   vec3 col = mix(baseCol, fillCol, filled);
-  col *= 0.38 + diff * 0.78 + wrap;
+  // Ambient floor (0.5) keeps shadowed regions from collapsing to black.
+  col *= 0.5 + diff * 0.72 + fill2 + wrap;
+  col += uBase * 0.08;
 
   vec3 V = normalize(cameraPosition - vWorldPos);
   float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-  col += uRim * fres * mix(0.18, 0.38, filled);
+  col += uRim * fres * (mix(0.22, 0.42, filled) + uPulse * 0.22);
 
   // Thin bright band at the current fill front.
   float active = step(0.002, uProgress) * (1.0 - step(0.998, uProgress));
   float band = exp(-pow((h - uProgress) / 0.010, 2.0));
   col += uRim * band * 1.1 * active;
+
+  // Completion: whole surface lifts and the rim flares briefly.
+  col += (uRim * fres * 0.9 + fillTone * 0.25) * uGlow;
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -209,6 +220,9 @@ interface SceneProps {
 function BrainMesh({ target, active }: SceneProps) {
   const parts = useMemo(buildParts, [])
   const smoothed = useRef(0)
+  const pulse = useRef(0)
+  const glow = useRef(0)
+  const groupRef = useRef<THREE.Group>(null)
 
   const materials = useMemo(
     () =>
@@ -222,10 +236,13 @@ function BrainMesh({ target, active }: SceneProps) {
               uMinY: { value: BOUNDS.minY },
               uMaxY: { value: BOUNDS.maxY },
               uTime: { value: 0 },
+              uPulse: { value: 0 },
+              uGlow: { value: 0 },
               uDisplace: { value: p.displace },
               uFreq: { value: p.freq },
               uSeed: { value: p.seed },
-              uBase: { value: new THREE.Color('#2A3F44') },
+              // Bright enough to read as a teal-grey brain on #0B1416 at 0%.
+              uBase: { value: new THREE.Color('#3A5A60') },
               uFillCool: { value: new THREE.Color('#1E8C86') },
               uFillWarm: { value: new THREE.Color('#D9A75C') },
               uRim: { value: new THREE.Color('#9FE0DA') },
@@ -242,18 +259,40 @@ function BrainMesh({ target, active }: SceneProps) {
     }
   }, [materials, parts])
 
-  useFrame((_state, dt) => {
+  useFrame((state, dt) => {
+    const t = state.clock.elapsedTime
     // Exponential approach: smooth between WebSocket ticks, never snaps.
+    // Once the run is over (not active) we approach faster so the last few
+    // percent land before the page navigates away.
     const k = 1 - Math.exp(-dt * (active ? 2.6 : 5))
     smoothed.current = THREE.MathUtils.lerp(smoothed.current, target, k)
+
+    // Idle breathing: only when nothing has started yet.
+    const idle = !active && target <= 0.001
+    const pulseTarget = idle ? 0.5 + 0.5 * Math.sin(t * 1.4) : 0
+    pulse.current = THREE.MathUtils.lerp(pulse.current, pulseTarget, 1 - Math.exp(-dt * 4))
+
+    // Completion flare: ramps up when the fill has actually reached the top,
+    // then settles to a gentle sustained pulse.
+    const done = target >= 0.999 && smoothed.current >= 0.985
+    const glowTarget = done ? 0.55 + 0.45 * Math.sin(t * 3.0) : 0
+    glow.current = THREE.MathUtils.lerp(glow.current, glowTarget, 1 - Math.exp(-dt * 3.5))
+
+    if (groupRef.current) {
+      const s = 1 + (idle ? 0.012 * Math.sin(t * 1.4) : 0) + glow.current * 0.02
+      groupRef.current.scale.setScalar(s)
+    }
+
     for (const m of materials) {
       m.uniforms.uProgress.value = smoothed.current
-      m.uniforms.uTime.value += dt
+      m.uniforms.uTime.value = t
+      m.uniforms.uPulse.value = pulse.current
+      m.uniforms.uGlow.value = glow.current
     }
   })
 
   return (
-    <group position={[0, 0.12, 0]}>
+    <group ref={groupRef} position={[0, 0.12, 0]}>
       {parts.map((p, i) => (
         <mesh
           key={i}
@@ -287,7 +326,7 @@ function BrainFallback({ progress }: { progress: number }) {
           <rect x="0" y={clipY} width="100" height={progress} />
         </clipPath>
       </defs>
-      <g fill="none" stroke="#2A3F44" strokeWidth={2.5} strokeLinecap="round">
+      <g fill="none" stroke="#3A5A60" strokeWidth={2.5} strokeLinecap="round">
         <path d="M47 15C30 15 14 27 14 45c0 12 7 21 15 25v14h18V15z" />
         <path d="M53 15c17 0 33 12 33 30 0 12-7 21-15 25v14H53V15z" />
       </g>
@@ -313,21 +352,38 @@ function hasWebGL(): boolean {
 /* -------------------------------------------------------------------------- */
 
 interface BrainVisualizerProps {
-  /** Live progress from the backend, 0..100. */
+  /** Displayed progress, 0..100. */
   progress: number
   stage: string
-  /** True while inference is running (enables auto-rotate). */
+  /** Optional secondary line under the stage (e.g. "Slice 40/155", "42s"). */
+  detail?: string | null
+  /** True while inference is running (faster auto-rotate, no idle pulse). */
   active: boolean
+  /** True once the backend has reported completion. */
+  complete?: boolean
 }
 
-export function BrainVisualizer({ progress, stage, active }: BrainVisualizerProps) {
+export function BrainVisualizer({
+  progress,
+  stage,
+  detail,
+  active,
+  complete = false,
+}: BrainVisualizerProps) {
   const webgl = useMemo(hasWebGL, [])
   const target = Math.min(1, Math.max(0, progress / 100))
+  const idle = !active && !complete && progress <= 0
 
   return (
-    <div className="brain-viz" aria-live="polite">
+    <div
+      className={`brain-viz${idle ? ' is-idle' : ''}${complete ? ' is-complete' : ''}`}
+      aria-live="polite"
+    >
       {webgl ? (
         <Canvas
+          // R3F wraps the <canvas> in a div; pin that wrapper to the container
+          // so the WebGL buffer always matches .brain-viz's box.
+          style={{ position: 'absolute', inset: 0 }}
           camera={{ position: [0, 0.55, 3.7], fov: 36 }}
           dpr={[1, 1.75]}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
@@ -336,8 +392,8 @@ export function BrainVisualizer({ progress, stage, active }: BrainVisualizerProp
           <OrbitControls
             enablePan={false}
             enableZoom={false}
-            autoRotate={active}
-            autoRotateSpeed={0.9}
+            autoRotate
+            autoRotateSpeed={active ? 0.9 : 0.3}
             minPolarAngle={Math.PI * 0.25}
             maxPolarAngle={Math.PI * 0.72}
             enableDamping
@@ -352,6 +408,7 @@ export function BrainVisualizer({ progress, stage, active }: BrainVisualizerProp
         <div>
           <div className="brain-viz__pct">{Math.round(progress)}%</div>
           <div className="brain-viz__stage">{stage}</div>
+          {detail && <div className="brain-viz__detail">{detail}</div>}
         </div>
         <div className="brain-viz__hint">
           <span>Drag to rotate</span>
