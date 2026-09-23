@@ -68,7 +68,6 @@ def _tumor_section(analysis: dict | None, images: dict[str, bytes], styles: dict
     ai_tag = ParagraphStyle("aitag", parent=label, fontName="Helvetica-Bold", textColor=colors.HexColor("#7A4DB3"))
 
     out: list = [Paragraph("AI Tumor Analysis", section),
-                 Paragraph("AI-GENERATED - second-stage classifier output on the synthetic T1CE. Not a clinical diagnosis.", ai_tag),
                  Spacer(1, 2 * mm)]
 
     if not analysis or analysis.get("status") != "ok":
@@ -94,10 +93,7 @@ def _tumor_section(analysis: dict | None, images: dict[str, bytes], styles: dict
         Paragraph(f"<b>{pf.get('name', '')}</b> - mean probability {pf.get('mean_probability_pct', '')}% "
                   f"<font color='{_tier_color(pf.get('risk_tier')).hexval()}'>[{pf.get('risk_tier', '')}]</font>", body),
         Paragraph(f"Overall tumour chance: <b>{analysis.get('overall_tumor_chance_pct', '')}%</b> "
-                  f"({analysis.get('overall_risk_tier', '')}) &nbsp;|&nbsp; "
-                  f"Affected slices: <b>{analysis.get('tumor_positive_count', 0)}</b> of {len(analysis.get('slices_analyzed', []))} analysed "
-                  f"(volume depth {analysis.get('slices_total', '')})", small),
-        Paragraph(f"Aggregation: {analysis.get('aggregation', '')}. Representative slice z={rep}.", sub),
+                  f"({analysis.get('overall_risk_tier', '')})", small),
     ]
     card = Table([[finding_lines, badge]], colWidths=[118 * mm, 56 * mm])
     card.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), OFFWHITE), ("BOX", (0, 0), (-1, -1), 0.75, badge_bg),

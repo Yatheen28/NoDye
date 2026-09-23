@@ -113,20 +113,6 @@ function FindingCard({ analysis }: FindingCardProps) {
             <> &nbsp;·&nbsp; {riskPill(analysis.overall_risk_tier)}</>
           )}
         </p>
-        <p className="tumor-finding-card__meta">
-          Affected slices:{' '}
-          <strong>{analysis.tumor_positive_count ?? 0}</strong> of{' '}
-          {(analysis.slices_analyzed ?? []).length} analysed
-          {analysis.slices_total !== undefined && (
-            <> (volume depth {analysis.slices_total})</>
-          )}
-        </p>
-        {analysis.aggregation && (
-          <p className="tumor-finding-card__sub">
-            Aggregation: {analysis.aggregation}. Representative slice z=
-            {analysis.representative_slice ?? '—'}.
-          </p>
-        )}
       </div>
       <div className="tumor-finding-card__badge">
         <span className={`tumor-badge ${detected ? 'tumor-badge--detected' : 'tumor-badge--clear'}`}>
@@ -295,7 +281,6 @@ export function TumorAnalysisPanel({ analysis, sliceImageUrls, imagesLoading }: 
       <section className="tumor-section">
         <div className="tumor-section__head">
           <h2 className="tumor-section__title">AI Tumor Analysis</h2>
-          <span className="tumor-ai-tag">AI-GENERATED · EfficientNet-B0 classifier</span>
         </div>
         <TumorUnavailable analysis={analysis} />
       </section>
@@ -312,7 +297,6 @@ export function TumorAnalysisPanel({ analysis, sliceImageUrls, imagesLoading }: 
       {/* ── header ── */}
       <div className="tumor-section__head">
         <h2 className="tumor-section__title">AI Tumor Analysis</h2>
-        <span className="tumor-ai-tag">AI-GENERATED · EfficientNet-B0 classifier · Not a clinical diagnosis</span>
       </div>
 
       {/* ── 3-panel images ── */}

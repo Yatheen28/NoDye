@@ -98,7 +98,6 @@ def extract_attention_heatmap(t1_vol_norm: np.ndarray, z: int, out_png: str, img
         vmin=0,
         vmax=0.2
     )
-    axes[1, 0].set_title("Absolute Difference", color="white")
     axes[1, 0].axis("off")
     
     cb = plt.colorbar(im, ax=axes[1, 0], fraction=0.046)

@@ -161,7 +161,6 @@ export function ResultsPage() {
       <div className="results-images">
         <ImagePanel
           title="Synthetic T1CE"
-          subtitle="Input T1 vs generated T1CE"
           src={urls.preview}
           loading={loading}
           alt="Preview of the synthetic contrast-enhanced slice"
@@ -169,7 +168,6 @@ export function ResultsPage() {
         />
         <ImagePanel
           title="Attention heatmap"
-          subtitle="Absolute difference (Model 1 input vs output)"
           src={urls.heatmap}
           loading={loading}
           alt="Absolute difference heatmap"
