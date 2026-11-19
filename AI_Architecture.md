@@ -300,5 +300,5 @@ sequenceDiagram
 ---
 
 <div align="center">
-<sub>NoDye AI Architecture · HackSpectra HS020 · 2026</sub>
+<sub>NoDye AI Architecture · 2026</sub>
 </div>

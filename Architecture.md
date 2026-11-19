@@ -362,5 +362,5 @@ Reports are simultaneously returned to the browser and uploaded to the `reports`
 ---
 
 <div align="center">
-<sub>NoDye System Architecture · HackSpectra HS020 · 2026</sub>
+<sub>NoDye System Architecture · 2026</sub>
 </div>

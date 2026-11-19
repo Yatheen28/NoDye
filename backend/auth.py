@@ -2,7 +2,7 @@
 from functools import lru_cache
 
 from fastapi import Header, HTTPException
-from supabase import Client, create_client
+from supabase import Client, create_client, ClientOptions
 
 from config import SUPABASE_SERVICE_KEY, SUPABASE_URL
 
@@ -11,7 +11,11 @@ from config import SUPABASE_SERVICE_KEY, SUPABASE_URL
 def service_client() -> Client:
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    return create_client(
+        SUPABASE_URL, 
+        SUPABASE_SERVICE_KEY,
+        options=ClientOptions(storage_client_timeout=120, postgrest_client_timeout=120)
+    )
 
 
 def _bearer(authorization: str | None) -> str:

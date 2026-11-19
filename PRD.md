@@ -4,8 +4,6 @@
 
 ### Contrast-Free Brain MRI Synthesis with AI Tumour Analysis
 
-*HackSpectra HS020 — CodeMark*
-
 </div>
 
 ---
@@ -80,7 +78,7 @@ Recent advances in deep learning have demonstrated that synthetic contrast-enhan
 | Anatomical location reporting | Requires spatial localisation beyond Grad-CAM |
 | Longitudinal tracking | Comparing scans over time requires patient history features |
 | Mobile application | Current version is web-only |
-| Regulatory certification | This is a research/hackathon prototype, not a certified medical device |
+| Regulatory certification | This is an experimental research prototype, not a certified medical device |
 
 ---
 
@@ -238,7 +236,7 @@ Recent advances in deep learning have demonstrated that synthetic contrast-enhan
 | **Phase 2** — AI Analysis | Model 2 integration + Grad-CAM + slice navigator | ✅ Complete |
 | **Phase 3** — Clinical Polish | PDF reports + risk tiers + non-technical summaries | ✅ Complete |
 | **Phase 4** — Security Hardening | PII encryption + RLS + auth enforcement | ✅ Complete |
-| **Phase 5** — Hackathon Submission | Documentation + demo + final testing | 🔄 In Progress |
+| **Phase 5** — Release & Submission | Documentation + demo + final testing | 🔄 In Progress |
 
 ---
 
@@ -261,5 +259,5 @@ Recent advances in deep learning have demonstrated that synthetic contrast-enhan
 ---
 
 <div align="center">
-<sub>NoDye PRD · HackSpectra HS020 · 2026</sub>
+<sub>NoDye PRD · 2026</sub>
 </div>

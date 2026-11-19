@@ -4,8 +4,6 @@
 
 ### Contrast-Free Brain MRI Synthesis with AI Tumor Analysis
 
-*Hackathon Project — HackSpectra HS020*
-
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
@@ -162,8 +160,8 @@ Original BraTS 2021 T1 MRI (.nii.gz)
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/HackSpectra/HS020-CodeMark.git
-cd HS020-CodeMark
+git clone https://github.com/Yatheen28/NoDye.git
+cd NoDye
 
 # Backend
 cd backend
@@ -368,16 +366,10 @@ All buckets are private. The frontend signs URLs on demand (30-minute expiry, sc
 
 ## Disclaimer
 
-NoDye is a research and hackathon prototype. It is **not a certified medical device** and must not be used for clinical diagnosis. All AI-generated results must be reviewed by a qualified radiologist. Grad-CAM overlays indicate model attention regions, not tumour boundaries or segmentation masks.
-
----
-
-## Team
-
-Built for **HackSpectra HS020 — CodeMark** hackathon.
+NoDye is an experimental research prototype. It is **not a certified medical device** and must not be used for clinical diagnosis. All AI-generated results must be reviewed by a qualified radiologist. Grad-CAM overlays indicate model attention regions, not tumour boundaries or segmentation masks.
 
 ---
 
 <div align="center">
-<sub>NoDye · HackSpectra HS020 · 2026</sub>
+<sub>NoDye · 2026</sub>
 </div>

@@ -79,6 +79,7 @@ pip_install.log
 
 # Knowledge Graph & Local Tooling
 graphify-out/
+.serena/
 
 # Local pipeline test output (run_pipeline_local.py artefacts)
 local_out/
